@@ -1,18 +1,4 @@
-import requests
+from app.routers.merge_csvs import merge_selected_csvs
 
-url = "http://127.0.0.1:8000/train/retrain/"
-
-data = {
-    "filename": "new_data.csv",
-    "models": ["RandomForest", "AdaBoost"],
-    "learning_rate": 0.5,
-    "n_estimators": 100,
-    "max_depth": 10
-}
-
-response = requests.post(url, data=data)
-print(response.json())
-
-
-
-
+df = merge_selected_csvs(["test_new_data.csv", "train_new_data.csv"])
+print(len(df)) 
