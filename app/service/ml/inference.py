@@ -11,7 +11,7 @@ from sklearn.metrics import (
     classification_report
 )
 import os
-from ..data.data_manage import merge_selected_csvs
+from ..data.data_manage import merge_selected_csvs_to_inference
 
 def load_model(model_type: int):
     """
@@ -48,7 +48,7 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
     model = joblib.load(model_path)
     
 
-    final_data = merge_selected_csvs(list_csv_names)
+    final_data = merge_selected_csvs_to_inference(list_csv_names)
     # 4️⃣ Extract true labels
     if "koi_disposition" not in final_data.columns:
         raise ValueError("❌ 'koi_disposition' column not found in test CSV!")
