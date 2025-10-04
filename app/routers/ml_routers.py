@@ -1,5 +1,18 @@
 from fastapi import APIRouter
-from service.ml import router as ai_router
+from fastapi import APIRouter, UploadFile, File
+import pandas as pd
+from ..service.ml.inference import inference
 
-router = APIRouter()
-router.include_router(ai_router.router, prefix="/ml", tags=["Machine Learning Service"])
+router = APIRouter(prefix='/ml', tags=['ml'])
+@router.post("/predict")
+async def predict(file: UploadFile = File(...)):
+    if not file.filename.endswith(".csv"):
+        return {"error": "Only CSV files are supported", "status": "400"}
+
+    contents = await file.read()
+    df = pd.read_csv(pd.io.common.BytesIO(contents))
+    inference
+    
+@router.get("/")
+def hello_data():
+    return {"message": "Hello from FastAPI!"}
