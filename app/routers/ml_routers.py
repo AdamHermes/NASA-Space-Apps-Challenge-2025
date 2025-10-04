@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi import APIRouter, UploadFile, File
 import pandas as pd
 from ..service.ml.inference import inference
+
 
 router = APIRouter(prefix='/ml', tags=['ml'])
 @router.post("/predict")
@@ -13,11 +14,13 @@ async def predict(file: UploadFile = File(...)):
     df = pd.read_csv(pd.io.common.BytesIO(contents))
     inference
     
-@router.get("/")
-def hello_data():
-    data = inference(model_type=1)
-    print(data)
-    return {"message": "Hello from FastAPI!"}
-
+@router.post("/inference/")
+def inference_endpoint(model_type: int = Query(0, ge=0, le=4, description="Model type: 0=Adaboost, 1=RandomForest, 2=GradientBoosting, 3=XGBoost, 4=LightGBM")):
+    """
+    Run model inference and analysis.
+    Returns evaluation metrics including accuracy, precision, recall, F1, and confusion matrix.
+    """
+    data = inference(model_type=model_type)
+    return data
 
 
