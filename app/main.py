@@ -1,25 +1,33 @@
 from fastapi import FastAPI
-from app.routes import router
-from .routers import data, ml_routers, visualization
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.routes import router
+from .routers import data, ml_routers, visualization,train_routers
+
 # Create FastAPI app
 app = FastAPI(
     title="My FastAPI App",
     description="A sample FastAPI project with app folder",
     version="1.0.0"
 )
-
+    
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Your frontend URL
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        # add your deployed frontend origins here
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Include OPTIONS
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-    
 
 app.include_router(router)
 app.include_router(data.router)
 app.include_router(ml_routers.router)
 app.include_router(visualization.router)
+app.include_router(train_routers.router)
+# app.include_router(merge_csvs.router)
+

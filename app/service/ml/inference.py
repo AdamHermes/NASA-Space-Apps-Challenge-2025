@@ -10,8 +10,8 @@ from sklearn.metrics import (
     confusion_matrix,
     classification_report
 )
-
-
+import os
+from ..data.data_manage import merge_selected_csvs
 
 def load_model(model_type: int):
     """
@@ -24,11 +24,11 @@ def load_model(model_type: int):
         4 - LightGBM
     """
     model_paths = {
-        0: "app/service/ml/models/adaboost_model.pkl",
-        1: "app/service/ml/models/random_forest_model.pkl",
-        2: "app/service/ml/models/extratree_model.pkl",
-        3: "app/service/ml/models/bagging_model.pkl",
-        4: "app/service/ml/models/stacking_model.pkl"
+        0: "app/service/ml/weights/adaboost_model.pkl",
+        1: "app/service/ml/weights/random_forest_model.pkl",
+        2: "app/service/ml/weights/extratree_model.pkl",
+        3: "app/service/ml/weights/bagging_model.pkl",
+        4: "app/service/ml/weights/stacking_model.pkl"
     }
 
     if model_type not in model_paths:
@@ -39,44 +39,130 @@ def load_model(model_type: int):
     print(f"✅ Loaded model: {model_path}")
     return model
 
-
-import joblib
-import pandas as pd
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    confusion_matrix,
-    classification_report
-)
-
-def inference(model_type, train_path=None, test_path=None):
+def inference_list_csvs(model_type, model_name, list_csv_names):
     """
     Run model inference and full evaluation on test data.
     Supports multiple model types.
     """
-    model = load_model(model_type)
+    model_path = os.path.join("app/storage/weights", model_type , model_name, ".pkl")
+    model = joblib.load(model_path)
+    
 
-    # # 3️⃣ Read data
-    # train_path = "app/storage/uploaded_csvs/cumulative_2025.10.03_05.59.39_train.csv"
-    # test_path = "app/storage/uploaded_csvs/cumulative_2025.10.03_05.59.39_test.csv"
-
-    train_df = pd.read_csv(train_path)
-    test_df = pd.read_csv(test_path)
+    final_data = merge_selected_csvs(list_csv_names)
 
     # 4️⃣ Extract true labels
-    if "koi_disposition" not in test_df.columns:
+    if "koi_disposition" not in final_data.columns:
         raise ValueError("❌ 'koi_disposition' column not found in test CSV!")
 
-    y_true = test_df["koi_disposition"]
+    y_true = final_data["koi_disposition"]
 
     # 5️⃣ Drop label column from features
-    X_train = train_df.drop(columns=["koi_disposition"], errors="ignore")
-    X_test = test_df.drop(columns=["koi_disposition"], errors="ignore")
+    # X_train = train_df.drop(columns=["koi_disposition"], errors="ignore")
+    X_test = final_data.drop(columns=["koi_disposition"], errors="ignore")
 
-    # 6️⃣ Align features just in case
-    X_test = X_test[X_train.columns]
+    X_test = X_test[final_data.columns]
+
+    # 7️⃣ Predict
+    y_pred = model.predict(X_test.values)
+    print("✅ Predictions completed!")
+
+    # 8️⃣ Compute metrics
+    acc = accuracy_score(y_true, y_pred)
+    precision_macro = precision_score(y_true, y_pred, average="macro", zero_division=0)
+    recall_macro = recall_score(y_true, y_pred, average="macro", zero_division=0)
+    f1_macro = f1_score(y_true, y_pred, average="macro", zero_division=0)
+
+    precision_weighted = precision_score(y_true, y_pred, average="weighted", zero_division=0)
+    recall_weighted = recall_score(y_true, y_pred, average="weighted", zero_division=0)
+    f1_weighted = f1_score(y_true, y_pred, average="weighted", zero_division=0)
+
+    # 9️⃣ Confusion Matrix
+    cm = confusion_matrix(y_true, y_pred)
+    cm_df = pd.DataFrame(cm, index=sorted(set(y_true)), columns=sorted(set(y_true)))
+
+    # 🔟 Classification Report
+    class_report = classification_report(y_true, y_pred, output_dict=True)
+
+    # 11️⃣ Print readable results
+    print("\n🎯 Model Evaluation Summary")
+    print("=" * 40)
+    print(f"Accuracy: {acc:.4f}")
+    print(f"Precision (Macro): {precision_macro:.4f}")
+    print(f"Recall (Macro): {recall_macro:.4f}")
+    print(f"F1-score (Macro): {f1_macro:.4f}")
+    print("\nConfusion Matrix:")
+    print(cm_df)
+    print("\nDetailed Classification Report:")
+    print(pd.DataFrame(class_report).T)
+
+    return {
+        "model_type": model_type,
+        "accuracy": acc,
+        "precision_macro": precision_macro,
+        "recall_macro": recall_macro,
+        "f1_macro": f1_macro,
+        "precision_weighted": precision_weighted,
+        "recall_weighted": recall_weighted,
+        "f1_weighted": f1_weighted,
+        "confusion_matrix": cm_df.to_dict(),
+        "classification_report": class_report,
+        "num_predictions": len(y_pred),
+        "sample_predictions": list(map(str, y_pred[:10])),
+    }
+
+
+
+
+
+
+def inference_new_data(model_type, model_name, new_csvs_data):
+    """
+    Run model inference and full evaluation on test data.
+    Supports multiple model types.
+    """
+    model_path = os.path.join("app/storage/weights", model_type , model_name, ".pkl")
+    model = joblib.load(model_path)
+    
+    final_data = merge_selected_csvs(new_csvs_data)
+
+    # 4️⃣ Extract true labels
+    if "koi_disposition" not in final_data.columns:
+        raise ValueError("❌ 'koi_disposition' column not found in test CSV!")
+
+    y_true = final_data["koi_disposition"]
+
+    # 5️⃣ Drop label column from features
+    # X_train = train_df.drop(columns=["koi_disposition"], errors="ignore")
+    X_test = final_data.drop(columns=["koi_disposition"], errors="ignore")
+
+    X_test = X_test[final_data.columns]
+
+    # 7️⃣ Predict
+    y_pred = model.predict(X_test.values)
+    print("✅ Predictions completed!")
+    return y_pred
+
+
+def inference_with_data(model_type, model_name, final_data):
+    """
+    Run model inference and full evaluation on test data.
+    Supports multiple model types.
+    """
+    model_path = os.path.join("app/storage/weights", model_type , model_name, ".pkl")
+    model = joblib.load(model_path)
+    
+
+    # 4️⃣ Extract true labels
+    if "koi_disposition" not in final_data.columns:
+        raise ValueError("❌ 'koi_disposition' column not found in test CSV!")
+
+    y_true = final_data["koi_disposition"]
+
+    # 5️⃣ Drop label column from features
+    # X_train = train_df.drop(columns=["koi_disposition"], errors="ignore")
+    X_test = final_data.drop(columns=["koi_disposition"], errors="ignore")
+
+    X_test = X_test[final_data.columns]
 
     # 7️⃣ Predict
     y_pred = model.predict(X_test.values)

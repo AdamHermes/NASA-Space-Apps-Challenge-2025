@@ -6,6 +6,7 @@ import os
 import shutil
 import pandas as pd 
 from ..service.data.process_koi import process_koi
+from ..service.data.data_manage import get_current_models, get_current_csv_files
 
 
 router = APIRouter(prefix='/data', tags=['data'])
@@ -23,30 +24,21 @@ async def upload_csv(file: UploadFile = File(...)):
     return {"message": "File uploaded successfully", "filename":file.filename, "filepath": file_path, "data_head": df.head().to_dict(orient="records")}
 
 @router.post("/process_csv/")
-async def process_csv(
-    filename: str = Form(...),
-    option: str = Form(...)
-):
+async def process_csv(filename: str = Form(...), option: str = Form(...)):
     try:
         result = process_koi(filename)
-        # return {
-        #     "message": f"CSV processed with option '{option}'",
-        #     "train": result["train_file"],
-        #     "test_file": result["test_file"]
-        # }
         return {
             "message": f"CSV processed with option '{option}'",
-            "train_filename": result["train_filename"],
-            "train_filepath": result["train_filepath"],
-            "test_filename": result["test_filename"],
-            "test_filepath": result["test_filepath"],
-            "train_head": result["train_head"],
-            "test_head": result["test_head"]
+            "data": result,
         }
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="File not found")
-    except KeyError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Processing failed: {e}")
-    
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/current_models")
+def get_models():
+    return get_current_models()
+
+@router.get("/current_csvs")
+def get_data():
+    return get_current_csv_files()
