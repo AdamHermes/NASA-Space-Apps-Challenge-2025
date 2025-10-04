@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import router
-from .routers import data, ml_routers, visualization
+from .routers import data, ml_routers, visualization,train_routers
 
 # Create FastAPI app
 app = FastAPI(
@@ -28,3 +28,4 @@ app.include_router(router)
 app.include_router(data.router)
 app.include_router(ml_routers.router)
 app.include_router(visualization.router)
+app.include_router(train_routers.router)
