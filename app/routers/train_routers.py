@@ -51,7 +51,7 @@ async def retrain(
             )
 
             # Save model
-            MODEL_DIR = Path("app/routers/storage/weights") / model_name.lower()
+            MODEL_DIR = Path("app/storage/weights") / model_name.lower()
             MODEL_DIR.mkdir(parents=True, exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             model_file = MODEL_DIR / f"{model_name}_{timestamp}.pkl"
