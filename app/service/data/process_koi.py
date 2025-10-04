@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from .data_manage import merge_selected_csvs
+import joblib
 
 CSV_UPLOAD_DIR = Path("app/storage/uploaded_csvs")
 PROCESS_CSV_DIR = Path("app/storage/processed_csvs")
@@ -83,11 +84,21 @@ def process_koi(csv_name):
         X = df_combined.drop(columns=["koi_disposition"])
         y = df_combined["koi_disposition"]
 
+        print(X.head())
         # ======================
         # Step 6: Scale features
         # ======================
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
+
+        # Save scaler
+        scaler_path = PROCESS_CSV_DIR / f"{csv_path.stem}_scaler.pkl"
+        joblib.dump(scaler, scaler_path)
+
+        # Combine scaled features with target
+        df_combined_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+        df_combined_scaled["koi_disposition"] = y.values        
+        
 
         # ======================
         # Step 7 & 8: Train-test split
@@ -112,8 +123,9 @@ def process_koi(csv_name):
         original_file = PROCESS_CSV_DIR / f"{csv_path.stem}_processed.csv"
         train_file = PROCESS_CSV_DIR / f"{csv_path.stem}_train.csv"
         test_file = PROCESS_CSV_DIR / f"{csv_path.stem}_test.csv"
-
-        df_combined.to_csv(original_file, index=False)
+        
+        
+        df_combined_scaled.to_csv(original_file, index=False)
         train_df.to_csv(train_file, index=False)
         test_df.to_csv(test_file, index=False)
 
@@ -129,6 +141,7 @@ def process_koi(csv_name):
             "test_filepath": str(test_file),
             "test_stats": test_stats,
             "all_filename": f"{csv_path.stem}_processed.csv",
+            "scaler_path": str(scaler_path),
             "train_head": train_df.head().to_dict(orient="records"),
             "test_head": test_df.head().to_dict(orient="records"),
         }

@@ -4,9 +4,6 @@ from pathlib import Path
 import pandas as pd
 
 
-
-
-
 def get_current_csv_files():
     return os.listdir("app/storage/uploaded_csvs")
 
@@ -48,9 +45,8 @@ def merge_selected_csvs(csv_files: list[str]) -> pd.DataFrame:
         if not file_path.exists():
             raise FileNotFoundError(f"{filename} not found in uploaded CSVs")
         
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, comment="#")
         merged_df = pd.concat([merged_df, df], ignore_index=True)
-    
     return merged_df
 
 
