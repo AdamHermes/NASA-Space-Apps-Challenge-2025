@@ -5,7 +5,6 @@ from ..service.ml.inference import inference_list_csvs, inference_new_data
 from typing import List
 
 
-
 router = APIRouter(prefix='/ml', tags=['ml'])
 @router.post("/predict")
 async def predict(file: UploadFile = File(...)):

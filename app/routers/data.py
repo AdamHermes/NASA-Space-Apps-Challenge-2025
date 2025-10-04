@@ -3,6 +3,7 @@ from fastapi import FastAPI, File, UploadFile, Form
 from pathlib import Path
 from fastapi.responses import JSONResponse
 import os
+from typing import List
 import shutil
 import pandas as pd 
 from ..service.data.process_koi import process_koi
@@ -24,9 +25,12 @@ async def upload_csv(file: UploadFile = File(...)):
     return {"message": "File uploaded successfully", "filename":file.filename, "filepath": file_path, "data_head": df.head().to_dict(orient="records")}
 
 @router.post("/process_csv/")
-async def process_csv(filename: str = Form(...), option: str = Form(...)):
+async def process_csv(filenames: List[str], option: str = Form(...)):
     try:
-        result = process_koi(filename)
+        filename_list = [f.strip() for f in filenames[0].split(',')]
+        # filename_list = filenames
+        print(filename_list)
+        result = process_koi(filename_list)
         return {
             "message": f"CSV processed with option '{option}'",
             "data": result,
