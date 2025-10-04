@@ -6,7 +6,7 @@ import json
 
 router = APIRouter(prefix='/visualization', tags=['visualization'])
 
-CSV_DIR = Path("storage/uploaded_csvs")
+CSV_DIR = Path("app/uploaded_csvs")
 
 @router.get("/find_by_hostname/{hostname}")
 async def find_by_hostname(hostname: str):
@@ -52,6 +52,31 @@ async def find_by_hostname(hostname: str):
             "data": cleaned_result
         }
         
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="CSV file not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+
+@router.get("/hostnames")
+async def get_all_hostnames():
+    "Get all existing host names from the CSV file."
+    try:
+        csv_file_path = CSV_DIR / "cumulative_with_hostnames.csv"
+        if not csv_file_path.exists():
+            raise HTTPException(status_code=404, detail="CSV file not found")
+        
+        df = pd.read_csv(csv_file_path)
+        if 'Host Name' not in df.columns:
+            raise HTTPException(status_code=400, detail="Required column 'Host Name' not found in CSV")
+        
+        # Get unique host names, removing NaN values
+        hostnames = df['Host Name'].dropna().unique().tolist()
+        
+        return {
+            "total_hostnames": len(hostnames),
+            "hostnames": sorted(hostnames)
+        }
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="CSV file not found")
     except Exception as e:

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Query
 from fastapi import APIRouter, UploadFile, File
 import pandas as pd
-from ..service.ml.inference import inference
+from ..service.ml.inference import inference_list_csvs, inference_new_data
+from typing import List
+
 
 
 router = APIRouter(prefix='/ml', tags=['ml'])
@@ -12,19 +14,39 @@ async def predict(file: UploadFile = File(...)):
 
     contents = await file.read()
     df = pd.read_csv(pd.io.common.BytesIO(contents))
-    inference
+    
     
 @router.post("/inference/")
 def inference_endpoint(
-    model_type: int = Query(0, ge=0, le=4, description="0=Adaboost, 1=RandomForest, 2=GradientBoosting, 3=XGBoost, 4=LightGBM"),
-    train_path: str = Query(..., description="Path to the training CSV file"),
-    test_path: str = Query(..., description="Path to the testing CSV file")
+    model_type: str = Query(..., description="Model Type"),
+    model_name: str = Query(..., description="Model Name"),
+    list_csv_names: List[str] = Query(..., description="List of paths to testing CSV files")
 ):
     """
     Run model inference and analysis using provided CSV paths.
     Returns accuracy, precision, recall, F1, and confusion matrix.
     """
-    data = inference(model_type=model_type, train_path=train_path, test_path=test_path)
+    data = inference_list_csvs(
+        model_type=model_type,
+        model_name=model_name,
+        list_csv_names=list_csv_names  # updated parameter
+    )
     return data
 
 
+@router.post("/inference_new_csv_files/")
+def inference_endpoint(
+    model_type: str = Query(..., description="Model Type"),
+    model_name: str = Query(..., description="Model Name"),
+    list_csv_new: List[str] = Query(..., description="List of paths to testing CSV files")
+):
+    """
+    Run model inference and analysis using provided CSV paths.
+    Returns accuracy, precision, recall, F1, and confusion matrix.
+    """
+    data = inference_new_data(
+        model_type=model_type,
+        model_name=model_name,
+        list_csv_names=list_csv_new  # updated parameter
+    )
+    return data
