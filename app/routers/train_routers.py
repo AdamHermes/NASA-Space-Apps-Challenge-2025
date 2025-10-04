@@ -1,3 +1,4 @@
+import shutil
 from fastapi import APIRouter, Form, HTTPException
 import pandas as pd
 from pathlib import Path
@@ -14,7 +15,8 @@ router = APIRouter(
 @router.post("/retrain/")
 async def retrain(
     file_train: str = Form(...),  # e.g., "train_data1.csv,train_data2.csv"
-    file_test: str = Form(...),   # e.g., "test_data.csv"
+    file_test: str = Form(...),  
+    scaler_path: str = Form(...), # e.g., "test_data.csv"
     models: list[str] = Form(...),           # e.g., ["RandomForest", "AdaBoost"]
     learning_rate: float = Form(None),
     n_estimators: int = Form(None),
