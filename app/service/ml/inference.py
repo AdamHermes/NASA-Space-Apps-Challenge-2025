@@ -2,6 +2,8 @@ import pandas as pd
 from io import BytesIO
 import joblib
 import csv
+from sklearn.preprocessing import StandardScaler
+from pathlib import Path
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -62,6 +64,27 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
 
     feature_columns = [col for col in final_data.columns if col != "koi_disposition"]
     X_test = X_test[feature_columns]
+
+    # ✅ Define scaler path
+    just_model_name = Path(model_name).stem
+    scaler_path = os.path.join("app/storage/scaler", str(model_type), f"{just_model_name}_scaler.pkl")
+
+    # ✅ Load or fit the scaler
+    if os.path.exists(scaler_path):
+        print(f"🔹 Loading existing scaler from {scaler_path}")
+        scaler = joblib.load(scaler_path)
+    else:
+        print("⚠️ Scaler not found — fitting a new one on test data (not recommended for production).")
+        scaler = StandardScaler()
+        scaler.fit(X_test)
+        os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
+        joblib.dump(scaler, scaler_path)
+        print(f"✅ New scaler saved to {scaler_path}")
+
+    # ✅ Transform test data
+    X_test = scaler.transform(X_test)
+    print("✅ Test data scaled successfully!")
+
 
     # 7️⃣ Predict
     y_pred = model.predict(X_test.values)
@@ -164,6 +187,7 @@ def inference_with_data(model_type, model_name, final_data):
     X_test = final_data.drop(columns=["koi_disposition"], errors="ignore")
 
     X_test = X_test[final_data.columns]
+
 
     # 7️⃣ Predict
     y_pred = model.predict(X_test.values)
