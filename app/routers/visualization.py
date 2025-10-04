@@ -6,7 +6,7 @@ import json
 
 router = APIRouter(prefix='/visualization', tags=['visualization'])
 
-CSV_DIR = Path("app/uploaded_csvs")
+CSV_DIR = Path("app/storage/")
 
 @router.get("/find_by_hostname/{hostname}")
 async def find_by_hostname(hostname: str):
@@ -58,6 +58,54 @@ async def find_by_hostname(hostname: str):
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
 
+@router.get("/find_by_kepid/{kepid}")
+async def find_by_kepid(kepid: int):
+    """
+    Find all rows with matching kepid.
+    """
+    try:
+        csv_file_path = CSV_DIR / "cumulative_with_hostnames.csv"
+        if not csv_file_path.exists():
+            raise HTTPException(status_code=404, detail="CSV file not found")
+        df = pd.read_csv(csv_file_path)
+        if 'kepid' not in df.columns:
+            raise HTTPException(status_code=400, detail="Required column 'kepid' not found in CSV")
+        matching_rows = df[df['kepid'] == kepid]
+        if matching_rows.empty:
+            raise HTTPException(status_code=404, detail=f"No rows found with kepid '{kepid}'")
+        
+        result = matching_rows.to_dict('records')
+        
+        # Clean the data to handle non-JSON compliant values (NaN, inf, -inf)
+        cleaned_result = []
+        for row in result:
+            cleaned_row = {}
+            for key, value in row.items():
+                if pd.isna(value):
+                    cleaned_row[key] = None
+                elif isinstance(value, float):
+                    if value == float('inf'):
+                        cleaned_row[key] = None
+                    elif value == float('-inf'):
+                        cleaned_row[key] = None
+                    else:
+                        cleaned_row[key] = value
+                else:
+                    cleaned_row[key] = value
+            cleaned_result.append(cleaned_row)
+        
+        return {
+            "kepid": kepid,
+            "total_rows": len(cleaned_result),
+            "data": cleaned_result
+        }
+        
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="CSV file not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+
 @router.get("/hostnames")
 async def get_all_hostnames():
     "Get all existing host names from the CSV file."
@@ -76,6 +124,29 @@ async def get_all_hostnames():
         return {
             "total_hostnames": len(hostnames),
             "hostnames": sorted(hostnames)
+        }
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="CSV file not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+    
+@router.get("/hostids")
+async def get_all_hostid():
+    "Get all existing host ids from the CSV file where host name is not empty."
+    try:
+        csv_file_path = CSV_DIR / "cumulative_with_hostnames.csv"
+        if not csv_file_path.exists():
+            raise HTTPException(status_code=404, detail="CSV file not found")
+        
+        df = pd.read_csv(csv_file_path)
+        if 'Host Name' not in df.columns or 'kepid' not in df.columns:
+            raise HTTPException(status_code=400, detail="Required columns 'Host Name' and 'kepid' not found in CSV")
+        filtered_df = df[df['Host Name'].notna() & (df['Host Name'] != '')]
+        hostids = filtered_df['kepid'].unique().tolist()
+        
+        return {
+            "total_ids": len(hostids),
+            "hostids": sorted(hostids)
         }
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="CSV file not found")
