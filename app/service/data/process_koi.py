@@ -58,8 +58,13 @@ def process_koi(csv_name):
         # ======================
         # Step 5: Split into X and y
         # ======================
+
         X = df.drop(columns=["koi_disposition"])
         y = df["koi_disposition"]
+        df_combined = pd.concat([X, y], axis=1)
+        df_combined.dropna(inplace=True)
+        X = df_combined.drop(columns=["koi_disposition"])
+        y = df_combined["koi_disposition"]
 
         # ======================
         # Step 6: Scale features

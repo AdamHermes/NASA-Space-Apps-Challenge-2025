@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from app.routes import router
-from .routers import data, ml_routers
-
+from .routers import data, ml_routers,train_routers
 # Create FastAPI app
 app = FastAPI(
     title="My FastAPI App",
@@ -13,3 +12,4 @@ app = FastAPI(
 app.include_router(router)
 app.include_router(data.router)
 app.include_router(ml_routers.router)
+app.include_router(train_routers.router)
