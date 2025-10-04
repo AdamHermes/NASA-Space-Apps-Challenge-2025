@@ -38,10 +38,11 @@ def merge_selected_csvs(csv_files: list[str]) -> pd.DataFrame:
         pd.DataFrame: The merged DataFrame.
     """
     merged_df = pd.DataFrame()
-    UPLOAD_DIR = Path("app/storage/processed_csvs")
+    UPLOAD_DIR = Path("app/storage/uploaded_csvs")
 
     for filename in csv_files:
         file_path = UPLOAD_DIR / filename
+        print(file_path)
         if not file_path.exists():
             raise FileNotFoundError(f"{filename} not found in uploaded CSVs")
         
@@ -49,5 +50,28 @@ def merge_selected_csvs(csv_files: list[str]) -> pd.DataFrame:
         merged_df = pd.concat([merged_df, df], ignore_index=True)
     return merged_df
 
+
+def merge_selected_csvs_to_inference(csv_files: list[str]) -> pd.DataFrame:
+    """
+    Merge selected CSV files from UPLOAD_DIR and return as a pandas DataFrame.
+    
+    Args:
+        csv_files (list[str]): List of CSV filenames to merge.
+    
+    Returns:
+        pd.DataFrame: The merged DataFrame.
+    """
+    merged_df = pd.DataFrame()
+    UPLOAD_DIR = Path("app/storage/processed_csvs")
+
+    for filename in csv_files:
+        file_path = UPLOAD_DIR / filename
+        print(file_path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"{filename} not found in uploaded CSVs")
+        
+        df = pd.read_csv(file_path, comment="#")
+        merged_df = pd.concat([merged_df, df], ignore_index=True)
+    return merged_df
 
 
