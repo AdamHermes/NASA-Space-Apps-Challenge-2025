@@ -51,6 +51,8 @@ async def retrain(
         shutil.copy(scaler_path, scaler_copy_path)
         # Train selected models
         results = {}
+        models =  [f.strip() for f in models[0].split(',')]
+
         for model_name in models:
             model, metrics = train_model(
                 X_train, y_train, X_test, y_test,
