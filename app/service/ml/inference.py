@@ -10,8 +10,7 @@ from sklearn.metrics import (
     confusion_matrix,
     classification_report
 )
-
-
+import os
 
 def load_model(model_type: int):
     """
@@ -39,44 +38,32 @@ def load_model(model_type: int):
     print(f"✅ Loaded model: {model_path}")
     return model
 
-
-import joblib
-import pandas as pd
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    confusion_matrix,
-    classification_report
-)
-
-def inference(model_type, train_path=None, test_path=None):
+def inference_list_csvs(model_type, model_name, list_csv_names):
     """
     Run model inference and full evaluation on test data.
     Supports multiple model types.
     """
-    model = load_model(model_type)
+    model_path = os.path.join("app/storage/weights", model_type , model_name, ".pkl")
+    model = joblib.load(model_path)
+    
 
-    # # 3️⃣ Read data
-    # train_path = "app/storage/uploaded_csvs/cumulative_2025.10.03_05.59.39_train.csv"
-    # test_path = "app/storage/uploaded_csvs/cumulative_2025.10.03_05.59.39_test.csv"
-
-    train_df = pd.read_csv(train_path)
-    test_df = pd.read_csv(test_path)
+    final_data = merge_list_csvs(list_csv_names)
 
     # 4️⃣ Extract true labels
-    if "koi_disposition" not in test_df.columns:
+    if "koi_disposition" not in final_data.columns:
         raise ValueError("❌ 'koi_disposition' column not found in test CSV!")
 
-    y_true = test_df["koi_disposition"]
+    y_true = final_data["koi_disposition"]
 
     # 5️⃣ Drop label column from features
-    X_train = train_df.drop(columns=["koi_disposition"], errors="ignore")
-    X_test = test_df.drop(columns=["koi_disposition"], errors="ignore")
+    # X_train = train_df.drop(columns=["koi_disposition"], errors="ignore")
+    X_test = final_data.drop(columns=["koi_disposition"], errors="ignore")
+
+
+    
 
     # 6️⃣ Align features just in case
-    X_test = X_test[X_train.columns]
+    X_test = X_test[final_data.columns]
 
     # 7️⃣ Predict
     y_pred = model.predict(X_test.values)
