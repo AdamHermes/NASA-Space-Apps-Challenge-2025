@@ -17,7 +17,7 @@ async def retrain(
     file_train: str = Form(...),  # e.g., "train_data1.csv,train_data2.csv"
     file_test: str = Form(...),  
     scaler_path: str = Form(...), # e.g., "test_data.csv"
-    models: list[str] = Form(...),           # e.g., ["RandomForest", "AdaBoost"]
+    models: str = Form(...),           # e.g., ["RandomForest", "AdaBoost"]
     learning_rate: float = Form(None),
     n_estimators: int = Form(None),
     max_depth: int = Form(None),
@@ -44,31 +44,29 @@ async def retrain(
         if not scaler_path.exists():
             raise HTTPException(status_code=404, detail="Scaler file not found")
         
-        SCALER_DIR = Path("app/storage/scalers") / model_name.lower()
+        SCALER_DIR = Path("app/storage/scalers") / models.lower()
         SCALER_DIR.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        scaler_copy_path = SCALER_DIR / f"{model_name}_{timestamp}_scaler.pkl"
+        scaler_copy_path = SCALER_DIR / f"{models}_{timestamp}_scaler.pkl"
         shutil.copy(scaler_path, scaler_copy_path)
         # Train selected models
         results = {}
-        models =  [f.strip() for f in models[0].split(',')]
 
-        for model_name in models:
-            model, metrics = train_model(
-                X_train, y_train, X_test, y_test,
-                model_name=model_name,
-                learning_rate=learning_rate,
-                n_estimators=n_estimators,
-                max_depth=max_depth
-            )
+        model, metrics = train_model(
+            X_train, y_train, X_test, y_test,
+            model_name=models,
+            learning_rate=learning_rate,
+            n_estimators=n_estimators,
+            max_depth=max_depth
+        )
 
-            # Save model
-            MODEL_DIR = Path("app/storage/weights") / model_name.lower()
-            MODEL_DIR.mkdir(parents=True, exist_ok=True)
-            model_file = MODEL_DIR / f"{model_name}_{timestamp}.pkl"
-            joblib.dump(model, model_file)
+        # Save model
+        MODEL_DIR = Path("app/storage/weights") / models.lower()
+        MODEL_DIR.mkdir(parents=True, exist_ok=True)
+        model_file = MODEL_DIR / f"{models}_{timestamp}.pkl"
+        joblib.dump(model, model_file)
 
-            results[model_name] = metrics
+        results[models] = metrics
 
         return {"message": "Retraining complete", "results": results}
 
