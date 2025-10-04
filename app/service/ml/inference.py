@@ -13,7 +13,7 @@ from sklearn.metrics import (
     classification_report
 )
 import os
-from ..data.data_manage import merge_selected_csvs_to_inference
+from ..data.data_manage import merge_selected_csvs_to_inference, merge_selected_csvs
 
 def load_model(model_type: int):
     """
@@ -41,6 +41,59 @@ def load_model(model_type: int):
     print(f"✅ Loaded model: {model_path}")
     return model
 
+def process_inference_data(final_data):
+    df = final_data
+
+    # ======================
+    # Step 1: Remove unnecessary columns
+    # ======================
+    cols = ['koi_disposition', 'koi_fpflag_nt', 'koi_fpflag_ss', 'koi_fpflag_co',
+        'koi_fpflag_ec', 'koi_period', 'koi_period_err1', 'koi_period_err2',
+        'koi_time0bk', 'koi_time0bk_err1', 'koi_time0bk_err2', 'koi_impact',
+        'koi_impact_err1', 'koi_impact_err2', 'koi_duration',
+        'koi_duration_err1', 'koi_duration_err2', 'koi_depth', 'koi_depth_err1',
+        'koi_depth_err2', 'koi_prad', 'koi_prad_err1', 'koi_prad_err2',
+        'koi_teq', 'koi_insol', 'koi_insol_err1', 'koi_insol_err2',
+        'koi_model_snr', 'koi_tce_plnt_num', 'koi_tce_delivname', 'koi_steff',
+        'koi_steff_err1', 'koi_steff_err2', 'koi_slogg', 'koi_slogg_err1',
+        'koi_slogg_err2', 'koi_srad', 'koi_srad_err1', 'koi_srad_err2', 'ra',
+        'dec', 'koi_kepmag']
+    
+    # ======================
+    # Step 2: Keep only candidate and confirmed
+    # ======================
+    df = df[df["koi_disposition"].isin(["CANDIDATE", "CONFIRMED"])]
+    print("After filtering dispositions:", df["koi_disposition"].value_counts())
+
+    # ======================
+    # Step 3: Encode target column
+    # ======================
+    df["koi_disposition"] = df["koi_disposition"].map({"CANDIDATE": 1, "CONFIRMED": 0})
+
+    missing_cols = [c for c in cols if c not in df.columns]
+    if missing_cols:
+        raise KeyError(f"Missing columns in CSV: {missing_cols}")
+
+    df = df[cols]
+    print("After column removal:", df.shape)
+
+    # ======================
+    # Step 4: Handle koi_tce_delivname
+    # ======================
+    if "koi_tce_delivname" in df.columns:
+        # Fill missing values with the mode (most frequent value)
+        df["koi_tce_delivname"].fillna(df["koi_tce_delivname"].mode()[0], inplace=True)
+
+        # Create Boolean dummy columns for only the two categories you care about
+        df["koi_tce_delivname_q1_q17_dr24_tce"] = df["koi_tce_delivname"] == "q1_q17_dr24_tce"
+        df["koi_tce_delivname_q1_q17_dr25_tce"] = df["koi_tce_delivname"] == "q1_q17_dr25_tce"
+
+        # Optionally drop the original column
+        df.drop(columns=["koi_tce_delivname"], inplace=True)
+
+    print(df.columns)
+    return df
+
 def inference_list_csvs(model_type, model_name, list_csv_names):
     """
     Run model inference and full evaluation on test data.
@@ -50,7 +103,9 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
     model = joblib.load(model_path)
     
 
-    final_data = merge_selected_csvs_to_inference(list_csv_names)
+    # final_data = merge_selected_csvs_to_inference(list_csv_names)
+    loaded_final_data = merge_selected_csvs(list_csv_names)
+    final_data = process_inference_data(final_data=loaded_final_data)
     # 4️⃣ Extract true labels
     if "koi_disposition" not in final_data.columns:
         raise ValueError("❌ 'koi_disposition' column not found in test CSV!")
@@ -67,7 +122,7 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
 
     # ✅ Define scaler path
     just_model_name = Path(model_name).stem
-    scaler_path = os.path.join("app/storage/scaler", str(model_type), f"{just_model_name}_scaler.pkl")
+    scaler_path = os.path.join("app/storage/scalers", str(model_type), f"{just_model_name}_scaler.pkl")
 
     # ✅ Load or fit the scaler
     if os.path.exists(scaler_path):
@@ -101,8 +156,13 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
     f1_weighted = f1_score(y_true, y_pred, average="weighted", zero_division=0)
 
     # 9️⃣ Confusion Matrix
-    cm = confusion_matrix(y_true, y_pred)
-    cm_df = pd.DataFrame(cm, index=sorted(set(y_true)), columns=sorted(set(y_true)))
+    labels = sorted(set(y_true) | set(y_pred))
+
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+
+    cm_df = pd.DataFrame(cm, index=labels, columns=labels)
+    # cm = confusion_matrix(y_true, y_pred)
+    # cm_df = pd.DataFrame(cm, index=sorted(set(y_true)), columns=sorted(set(y_true)))
 
     # 🔟 Classification Report
     class_report = classification_report(y_true, y_pred, output_dict=True)
