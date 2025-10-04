@@ -23,10 +23,7 @@ async def upload_csv(file: UploadFile = File(...)):
     return {"message": "File uploaded successfully", "filename":file.filename, "filepath": file_path, "data_head": df.head().to_dict(orient="records")}
 
 @router.post("/process_csv/")
-async def process_csv(
-    filename: str = Form(...),
-    option: str = Form(...)
-):
+async def process_csv(filename: str = Form(...), option: str = Form(...)):
     try:
         result = process_koi(filename)
         # return {
@@ -43,10 +40,5 @@ async def process_csv(
             "train_head": result["train_head"],
             "test_head": result["test_head"]
         }
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="File not found")
-    except KeyError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Processing failed: {e}")
-    
+        raise HTTPException(status_code=500, detail=str(e))
