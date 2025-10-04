@@ -29,5 +29,5 @@ app.include_router(data.router)
 app.include_router(ml_routers.router)
 app.include_router(visualization.router)
 app.include_router(train_routers.router)
-app.include_router(merge_csvs.router)
+# app.include_router(merge_csvs.router)
 
