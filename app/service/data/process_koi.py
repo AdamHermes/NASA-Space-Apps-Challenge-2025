@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
-CSV_UPLOAD_DIR = Path("storage/uploaded_csvs")
+CSV_UPLOAD_DIR = Path("app/storage/uploaded_csvs")
 
 def process_koi(csv_name):
     try:
@@ -94,7 +94,14 @@ def process_koi(csv_name):
         print("Train:", train_file)
         print("Test:", test_file)
 
-        return {"train_file": str(train_file), "test_file": str(test_file)}
+        return {
+            "train_filename": f"{csv_path.stem}_train.csv",
+            "train_filepath": str(train_file),
+            "test_filename": f"{csv_path.stem}_test.csv",
+            "test_filepath": str(test_file),
+            "train_head": train_df.head().to_dict(orient="records"),
+            "test_head": test_df.head().to_dict(orient="records")
+        }
 
     except FileNotFoundError as e:
         print("[ERROR]", e)
