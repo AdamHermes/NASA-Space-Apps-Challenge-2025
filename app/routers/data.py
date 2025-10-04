@@ -45,9 +45,6 @@ async def process_csv(filename: str = Form(...), option: str = Form(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-
-
 @router.get("/current_models")
 def get_models():
     return get_current_models()
