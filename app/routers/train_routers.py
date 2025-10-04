@@ -21,7 +21,7 @@ async def retrain(
     max_depth: int = Form(None),
 ):
     try:
-        PROCESSED_DIR = Path("storage/processed_data")
+        PROCESSED_DIR = Path("app/storage/processed_csvs")
 
         # Prepare train DataFrame
         train_files = [f.strip() for f in file_train.split(",")]
