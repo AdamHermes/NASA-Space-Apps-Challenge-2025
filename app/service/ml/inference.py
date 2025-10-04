@@ -44,7 +44,7 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
     Run model inference and full evaluation on test data.
     Supports multiple model types.
     """
-    model_path = os.path.join("app/storage/weights", model_type , model_name + ".pkl")
+    model_path = os.path.join("app/storage/weights", model_type , model_name)
     model = joblib.load(model_path)
     
 
