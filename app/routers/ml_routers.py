@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query
 from fastapi import APIRouter, UploadFile, File
 import pandas as pd
-from ..service.ml.inference import inference_list_csvs
+from ..service.ml.inference import inference_list_csvs, inference_new_data
 from typing import List
 
 
@@ -34,3 +34,19 @@ def inference_endpoint(
     return data
 
 
+@router.post("/inference_new_csv_files/")
+def inference_endpoint(
+    model_type: str = Query(..., description="Model Type"),
+    model_name: str = Query(..., description="Model Name"),
+    list_csv_new: List[str] = Query(..., description="List of paths to testing CSV files")
+):
+    """
+    Run model inference and analysis using provided CSV paths.
+    Returns accuracy, precision, recall, F1, and confusion matrix.
+    """
+    data = inference_new_data(
+        model_type=model_type,
+        model_name=model_name,
+        list_csv_names=list_csv_new  # updated parameter
+    )
+    return data
