@@ -11,6 +11,7 @@ from sklearn.metrics import (
     classification_report
 )
 import os
+from ..data.data_manage import merge_selected_csvs
 
 def load_model(model_type: int):
     """
@@ -47,7 +48,7 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
     model = joblib.load(model_path)
     
 
-    final_data = merge_list_csvs(list_csv_names)
+    final_data = merge_selected_csvs(list_csv_names)
 
     # 4️⃣ Extract true labels
     if "koi_disposition" not in final_data.columns:
@@ -59,10 +60,6 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
     # X_train = train_df.drop(columns=["koi_disposition"], errors="ignore")
     X_test = final_data.drop(columns=["koi_disposition"], errors="ignore")
 
-
-    
-
-    # 6️⃣ Align features just in case
     X_test = X_test[final_data.columns]
 
     # 7️⃣ Predict

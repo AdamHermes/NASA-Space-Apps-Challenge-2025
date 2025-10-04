@@ -1,6 +1,7 @@
 import os
 import json
-
+from pathlib import Path
+import pandas as pd
 
 
 
@@ -27,10 +28,8 @@ def get_current_models():
     return json.dumps(models_info, indent=4)
 
 
-from pathlib import Path
-import pandas as pd
 
-UPLOAD_DIR = Path("storage/uploaded_csvs")
+
 
 def merge_selected_csvs(csv_files: list[str]) -> pd.DataFrame:
     """
@@ -43,7 +42,8 @@ def merge_selected_csvs(csv_files: list[str]) -> pd.DataFrame:
         pd.DataFrame: The merged DataFrame.
     """
     merged_df = pd.DataFrame()
-    
+    UPLOAD_DIR = Path("app/storage/uploaded_csvs")
+
     for filename in csv_files:
         file_path = UPLOAD_DIR / filename
         if not file_path.exists():
