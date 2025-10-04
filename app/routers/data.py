@@ -27,19 +27,9 @@ async def upload_csv(file: UploadFile = File(...)):
 async def process_csv(filename: str = Form(...), option: str = Form(...)):
     try:
         result = process_koi(filename)
-        # return {
-        #     "message": f"CSV processed with option '{option}'",
-        #     "train": result["train_file"],
-        #     "test_file": result["test_file"]
-        # }
         return {
             "message": f"CSV processed with option '{option}'",
-            "train_filename": result["train_filename"],
-            "train_filepath": result["train_filepath"],
-            "test_filename": result["test_filename"],
-            "test_filepath": result["test_filepath"],
-            "train_head": result["train_head"],
-            "test_head": result["test_head"]
+            "data": result,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

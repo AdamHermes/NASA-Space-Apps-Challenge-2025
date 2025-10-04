@@ -11,7 +11,6 @@ def get_current_csv_files():
     return os.listdir("app/storage/uploaded_csvs")
 
 
-
 def get_current_models():
     base_dir = "app/storage/weights"
     models_info = {}

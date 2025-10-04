@@ -4,6 +4,16 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
 CSV_UPLOAD_DIR = Path("app/storage/uploaded_csvs")
+PROCESS_CSV_DIR = Path("app/storage/processed_csvs")
+
+def get_dataset_stats(df, label_col="koi_disposition"):
+    stats = {
+        "num_samples": len(df),
+        "num_features": df.shape[1] - 1,  # excluding label
+        "class_counts": df[label_col].value_counts().to_dict(),
+        "class_percentage": (df[label_col].value_counts(normalize=True) * 100).round(2).to_dict()
+    }
+    return stats
 
 def process_koi(csv_name):
     try:
@@ -89,9 +99,14 @@ def process_koi(csv_name):
         test_df = pd.DataFrame(X_test, columns=X.columns)
         test_df["koi_disposition"] = y_test.values
 
-        train_file = CSV_UPLOAD_DIR / f"{csv_path.stem}_train.csv"
-        test_file = CSV_UPLOAD_DIR / f"{csv_path.stem}_test.csv"
+        train_stats = get_dataset_stats(train_df)
+        test_stats = get_dataset_stats(test_df)
 
+        original_file = PROCESS_CSV_DIR / f"{csv_path.stem}_processed.csv"
+        train_file = PROCESS_CSV_DIR / f"{csv_path.stem}_train.csv"
+        test_file = PROCESS_CSV_DIR / f"{csv_path.stem}_test.csv"
+
+        df_combined.to_csv(original_file, index=False)
         train_df.to_csv(train_file, index=False)
         test_df.to_csv(test_file, index=False)
 
@@ -102,10 +117,12 @@ def process_koi(csv_name):
         return {
             "train_filename": f"{csv_path.stem}_train.csv",
             "train_filepath": str(train_file),
+            "train_stats": train_stats,
             "test_filename": f"{csv_path.stem}_test.csv",
             "test_filepath": str(test_file),
+            "test_stats": test_stats,
             "train_head": train_df.head().to_dict(orient="records"),
-            "test_head": test_df.head().to_dict(orient="records")
+            "test_head": test_df.head().to_dict(orient="records"),
         }
 
     except FileNotFoundError as e:
