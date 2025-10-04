@@ -128,6 +128,7 @@ def process_koi(csv_name):
             "test_filename": f"{csv_path.stem}_test.csv",
             "test_filepath": str(test_file),
             "test_stats": test_stats,
+            "all_filename": f"{csv_path.stem}_processed.csv",
             "train_head": train_df.head().to_dict(orient="records"),
             "test_head": test_df.head().to_dict(orient="records"),
         }
