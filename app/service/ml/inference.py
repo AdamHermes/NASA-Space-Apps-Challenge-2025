@@ -51,16 +51,16 @@ from sklearn.metrics import (
     classification_report
 )
 
-def inference(model_type):
+def inference(model_type, train_path=None, test_path=None):
     """
     Run model inference and full evaluation on test data.
     Supports multiple model types.
     """
     model = load_model(model_type)
 
-    # 3️⃣ Read data
-    train_path = "app/storage/uploaded_csvs/cumulative_2025.10.03_05.59.39_train.csv"
-    test_path = "app/storage/uploaded_csvs/cumulative_2025.10.03_05.59.39_test.csv"
+    # # 3️⃣ Read data
+    # train_path = "app/storage/uploaded_csvs/cumulative_2025.10.03_05.59.39_train.csv"
+    # test_path = "app/storage/uploaded_csvs/cumulative_2025.10.03_05.59.39_test.csv"
 
     train_df = pd.read_csv(train_path)
     test_df = pd.read_csv(test_path)
