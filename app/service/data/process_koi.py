@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from .data_manage import merge_selected_csvs
 
 CSV_UPLOAD_DIR = Path("app/storage/uploaded_csvs")
 PROCESS_CSV_DIR = Path("app/storage/processed_csvs")
@@ -17,12 +18,18 @@ def get_dataset_stats(df, label_col="koi_disposition"):
 
 def process_koi(csv_name):
     try:
-        csv_path = CSV_UPLOAD_DIR / csv_name
-        if not csv_path.exists():
-            raise FileNotFoundError(f"{csv_name} not found in {CSV_UPLOAD_DIR}")
+        if len(csv_name) > 1:
+            print("[INFO] Processing csvs:", csv_name)
+            original_df = merge_selected_csvs(csv_files=csv_name)
+            csv_path = CSV_UPLOAD_DIR / "merged_data.csv"
+        else: 
+            csv_name = csv_name[0]
+            csv_path = CSV_UPLOAD_DIR / csv_name
+            if not csv_path.exists():
+                raise FileNotFoundError(f"{csv_name} not found in {CSV_UPLOAD_DIR}")
 
-        print("[INFO] Processing csv_path:", csv_path)
-        original_df = pd.read_csv(csv_path, comment="#")
+            print("[INFO] Processing csv_path:", csv_path)
+            original_df = pd.read_csv(csv_path, comment="#")
         print("Original shape:", original_df.shape)
 
         # ======================
