@@ -15,4 +15,8 @@ async def predict(file: UploadFile = File(...)):
     
 @router.get("/")
 def hello_data():
+    inference()
     return {"message": "Hello from FastAPI!"}
+
+
+
