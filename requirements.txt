@@ -1,2 +1,7 @@
 fastapi
 uvicorn
+<<<<<<< HEAD
+=======
+pandas
+scikit-learn
+>>>>>>> 2a6e91e8b2023c193a6f1704267a5d81b3f01ac8
