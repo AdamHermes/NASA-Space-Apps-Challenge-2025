@@ -84,10 +84,10 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
     # ✅ Transform test data
     X_test = scaler.transform(X_test)
     print("✅ Test data scaled successfully!")
-
+    print(X_test)
 
     # 7️⃣ Predict
-    y_pred = model.predict(X_test.values)
+    y_pred = model.predict(X_test)   # ✅ FIXED: removed `.values`
     print("✅ Predictions completed!")
 
     # 8️⃣ Compute metrics
