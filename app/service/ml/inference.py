@@ -44,12 +44,11 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
     Run model inference and full evaluation on test data.
     Supports multiple model types.
     """
-    model_path = os.path.join("app/storage/weights", model_type , model_name, ".pkl")
+    model_path = os.path.join("app/storage/weights", model_type , model_name + ".pkl")
     model = joblib.load(model_path)
     
 
     final_data = merge_selected_csvs(list_csv_names)
-
     # 4️⃣ Extract true labels
     if "koi_disposition" not in final_data.columns:
         raise ValueError("❌ 'koi_disposition' column not found in test CSV!")
@@ -58,9 +57,11 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
 
     # 5️⃣ Drop label column from features
     # X_train = train_df.drop(columns=["koi_disposition"], errors="ignore")
-    X_test = final_data.drop(columns=["koi_disposition"], errors="ignore")
+    
+    X_test = final_data.drop(columns=["koi_disposition"])
 
-    X_test = X_test[final_data.columns]
+    feature_columns = [col for col in final_data.columns if col != "koi_disposition"]
+    X_test = X_test[feature_columns]
 
     # 7️⃣ Predict
     y_pred = model.predict(X_test.values)
