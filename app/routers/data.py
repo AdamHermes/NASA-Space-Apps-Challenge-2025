@@ -6,6 +6,7 @@ import os
 import shutil
 import pandas as pd 
 from ..service.data.process_koi import process_koi
+from ..service.data.data_manage import get_current_models, get_current_csv_files
 
 
 router = APIRouter(prefix='/data', tags=['data'])
@@ -42,3 +43,15 @@ async def process_csv(filename: str = Form(...), option: str = Form(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+
+@router.get("/current_models")
+def get_models():
+    return get_current_models()
+
+@router.get("/current_csvs")
+def get_data():
+    return get_current_csv_files()
