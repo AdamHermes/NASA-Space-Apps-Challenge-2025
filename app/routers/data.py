@@ -10,14 +10,17 @@ from ..service.data.process_koi import process_koi
 
 router = APIRouter(prefix='/data', tags=['data'])
 
-CSV_UPLOAD_DIR = Path("storage/uploaded_csvs")
+CSV_UPLOAD_DIR = Path("app/storage/uploaded_csvs")
 
 @router.post("/upload_csv/")
 async def upload_csv(file: UploadFile = File(...)):
     file_path = CSV_UPLOAD_DIR / file.filename
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    return {"message": "File uploaded successfully", "filename": file.filename}
+    df = pd.read_csv(file_path, comment="#")
+    df = df.fillna("nan")
+
+    return {"message": "File uploaded successfully", "filename":file.filename, "filepath": file_path, "data_head": df.head().to_dict(orient="records")}
 
 @router.post("/process_csv/")
 async def process_csv(
@@ -26,10 +29,19 @@ async def process_csv(
 ):
     try:
         result = process_koi(filename)
+        # return {
+        #     "message": f"CSV processed with option '{option}'",
+        #     "train": result["train_file"],
+        #     "test_file": result["test_file"]
+        # }
         return {
             "message": f"CSV processed with option '{option}'",
-            "train_file": result["train_file"],
-            "test_file": result["test_file"]
+            "train_filename": result["train_filename"],
+            "train_filepath": result["train_filepath"],
+            "test_filename": result["test_filename"],
+            "test_filepath": result["test_filepath"],
+            "train_head": result["train_head"],
+            "test_head": result["test_head"]
         }
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found")
