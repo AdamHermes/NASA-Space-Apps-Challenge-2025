@@ -1,12 +1,9 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Form, HTTPException
 import pandas as pd
 from pathlib import Path
-from io import StringIO
 import joblib
 
 from ..models.models import train_model  # Your training function
-
 
 router = APIRouter(
     prefix="/train",
@@ -15,66 +12,44 @@ router = APIRouter(
 
 @router.post("/retrain/")
 async def retrain(
-    filename: str = Form(...),
-    models: list[str] = Form(...),   # e.g., ["RandomForest", "AdaBoost"]
+    filename: str = Form(...),                # Name of the merged CSV
+    models: list[str] = Form(...),           # e.g., ["RandomForest", "AdaBoost"]
     learning_rate: float = Form(None),
     n_estimators: int = Form(None),
     max_depth: int = Form(None)
 ):
     try:
-        # Load processed CSV
-        PROCESSED_DIR = Path("storage/processed_data")
-        train_file = PROCESSED_DIR / f"train_{filename}"
-        test_file = PROCESSED_DIR / f"test_{filename}"
-        if not train_file.exists() or not test_file.exists():
-            raise HTTPException(status_code=404, detail="Processed CSV not found")
+        # Load merged CSV
+        MERGED_DIR = Path("storage/merged_csvs")
+        train_file = MERGED_DIR / filename
+        if not train_file.exists():
+            raise HTTPException(status_code=404, detail="Merged CSV not found")
         
-        # Merge with master dataset
-        MASTER_DIR = Path("storage/master_data")
-        MASTER_DIR.mkdir(parents=True, exist_ok=True)
-        master_train_file = MASTER_DIR / "master_train.csv"
-        master_test_file = MASTER_DIR / "master_test.csv"
+        df = pd.read_csv(train_file)
         
-        new_train = pd.read_csv(train_file)
-        new_test = pd.read_csv(test_file)
+        # Split features/target
+        if df.shape[1] < 2:
+            raise HTTPException(status_code=400, detail="CSV must have at least one feature column and one target column")
         
-        if master_train_file.exists():
-            master_train = pd.read_csv(master_train_file)
-            master_train = pd.concat([master_train, new_train], ignore_index=True)
-        else:
-            master_train = new_train
-        
-        if master_test_file.exists():
-            master_test = pd.read_csv(master_test_file)
-            master_test = pd.concat([master_test, new_test], ignore_index=True)
-        else:
-            master_test = new_test
-        
-        # Save updated master
-        master_train.to_csv(master_train_file, index=False)
-        master_test.to_csv(master_test_file, index=False)
-        print(f"[INFO] Merged master train rows: {len(master_train)}")
-        print(f"[INFO] Merged master test rows: {len(master_test)}")
-        
-        # Prepare features/target
-        X_train, y_train = master_train.iloc[:, :-1], master_train.iloc[:, -1]
-        X_test, y_test = master_test.iloc[:, :-1], master_test.iloc[:, -1]
+        X, y = df.iloc[:, :-1], df.iloc[:, -1]
         
         # Train selected models
         results = {}
         for model_name in models:
             model, metrics = train_model(
-                X_train, y_train, X_test, y_test,
+                X, y, X, y,                  # Using same data as train/test for simplicity, can adjust if needed
                 model_name=model_name,
                 learning_rate=learning_rate,
                 n_estimators=n_estimators,
                 max_depth=max_depth
             )
+            
             # Save model
             MODEL_DIR = Path("app/services/ml/models")
             MODEL_DIR.mkdir(parents=True, exist_ok=True)
             model_file = MODEL_DIR / f"{model_name}_latest.pkl"
             joblib.dump(model, model_file)
+            
             results[model_name] = metrics
         
         return {"message": "Retraining complete", "results": results}
