@@ -38,7 +38,7 @@ def merge_selected_csvs(csv_files: list[str]) -> pd.DataFrame:
         pd.DataFrame: The merged DataFrame.
     """
     merged_df = pd.DataFrame()
-    UPLOAD_DIR = Path("app/storage/uploaded_csvs")
+    UPLOAD_DIR = Path("app/storage/processed_csvs")
 
     for filename in csv_files:
         file_path = UPLOAD_DIR / filename

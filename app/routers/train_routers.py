@@ -2,6 +2,7 @@ from fastapi import APIRouter, Form, HTTPException
 import pandas as pd
 from pathlib import Path
 import joblib
+from datetime import datetime
 
 from ..models.models import train_model  # Your training function
 
@@ -20,7 +21,7 @@ async def retrain(
     max_depth: int = Form(None),
 ):
     try:
-        PROCESSED_DIR = Path("storage/processed_data")
+        PROCESSED_DIR = Path("app/storage/processed_csvs")
 
         # Prepare train DataFrame
         train_files = [f.strip() for f in file_train.split(",")]
@@ -50,9 +51,10 @@ async def retrain(
             )
 
             # Save model
-            MODEL_DIR = Path("app/services/ml/models")
+            MODEL_DIR = Path("app/storage/weights") / model_name.lower()
             MODEL_DIR.mkdir(parents=True, exist_ok=True)
-            model_file = MODEL_DIR / f"{model_name}_latest.pkl"
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            model_file = MODEL_DIR / f"{model_name}_{timestamp}.pkl"
             joblib.dump(model, model_file)
 
             results[model_name] = metrics
