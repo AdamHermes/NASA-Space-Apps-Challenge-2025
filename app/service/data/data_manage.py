@@ -27,3 +27,32 @@ def get_current_models():
     return json.dumps(models_info, indent=4)
 
 
+from pathlib import Path
+import pandas as pd
+
+UPLOAD_DIR = Path("storage/uploaded_csvs")
+
+def merge_selected_csvs(csv_files: list[str]) -> pd.DataFrame:
+    """
+    Merge selected CSV files from UPLOAD_DIR and return as a pandas DataFrame.
+    
+    Args:
+        csv_files (list[str]): List of CSV filenames to merge.
+    
+    Returns:
+        pd.DataFrame: The merged DataFrame.
+    """
+    merged_df = pd.DataFrame()
+    
+    for filename in csv_files:
+        file_path = UPLOAD_DIR / filename
+        if not file_path.exists():
+            raise FileNotFoundError(f"{filename} not found in uploaded CSVs")
+        
+        df = pd.read_csv(file_path)
+        merged_df = pd.concat([merged_df, df], ignore_index=True)
+    
+    return merged_df
+
+
+
