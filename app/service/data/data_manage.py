@@ -1,14 +1,8 @@
 import os
 import json
 
-
-
-
-
-
 def get_current_csv_files():
     return os.listdir("app/storage/uploaded_csvs")
-
 
 
 def get_current_models():
