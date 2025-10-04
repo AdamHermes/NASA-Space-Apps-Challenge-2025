@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 import os
 import shutil
 import pandas as pd 
-from ..data_services.process_koi import process_koi
+from ..service.data.process_koi import process_koi
 
 
 router = APIRouter(prefix='/data', tags=['data'])
