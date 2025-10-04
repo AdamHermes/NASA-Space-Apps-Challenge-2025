@@ -3,5 +3,5 @@ uvicorn
 numpy 
 scikit-learn
 python-multipart
-pandas
+httpx
 requests
