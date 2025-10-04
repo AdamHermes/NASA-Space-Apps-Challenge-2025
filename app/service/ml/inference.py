@@ -24,11 +24,11 @@ def load_model(model_type: int):
         4 - LightGBM
     """
     model_paths = {
-        0: "app/service/ml/models/adaboost_model.pkl",
-        1: "app/service/ml/models/random_forest_model.pkl",
-        2: "app/service/ml/models/extratree_model.pkl",
-        3: "app/service/ml/models/bagging_model.pkl",
-        4: "app/service/ml/models/stacking_model.pkl"
+        0: "app/service/ml/weights/adaboost_model.pkl",
+        1: "app/service/ml/weights/random_forest_model.pkl",
+        2: "app/service/ml/weights/extratree_model.pkl",
+        3: "app/service/ml/weights/bagging_model.pkl",
+        4: "app/service/ml/weights/stacking_model.pkl"
     }
 
     if model_type not in model_paths:
