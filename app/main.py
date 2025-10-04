@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.routes import router
-from .routers import data
+from .routers import data, visualization
 
 # Create FastAPI app
 app = FastAPI(
@@ -12,3 +12,4 @@ app = FastAPI(
 # Include routes from routes.py
 app.include_router(router)
 app.include_router(data.router)
+app.include_router(visualization.router)
