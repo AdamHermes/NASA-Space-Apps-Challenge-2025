@@ -40,7 +40,15 @@ async def retrain(
         # Split features/target
         X_train, y_train = df_train.iloc[:, :-1], df_train.iloc[:, -1]
         X_test, y_test = df_test.iloc[:, :-1], df_test.iloc[:, -1]
-
+        scaler_path = Path(scaler_path)
+        if not scaler_path.exists():
+            raise HTTPException(status_code=404, detail="Scaler file not found")
+        
+        SCALER_DIR = Path("app/storage/scalers") / model_name.lower()
+        SCALER_DIR.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        scaler_copy_path = SCALER_DIR / f"{model_name}_{timestamp}_scaler.pkl"
+        shutil.copy(scaler_path, scaler_copy_path)
         # Train selected models
         results = {}
         for model_name in models:
@@ -55,7 +63,6 @@ async def retrain(
             # Save model
             MODEL_DIR = Path("app/storage/weights") / model_name.lower()
             MODEL_DIR.mkdir(parents=True, exist_ok=True)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             model_file = MODEL_DIR / f"{model_name}_{timestamp}.pkl"
             joblib.dump(model, model_file)
 
