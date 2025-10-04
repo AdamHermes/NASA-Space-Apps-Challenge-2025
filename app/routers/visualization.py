@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
-import pandas as pd 
+import pandas as pd
+import httpx
+import json 
 
 router = APIRouter(prefix='/visualization', tags=['visualization'])
 
@@ -54,3 +56,34 @@ async def find_by_hostname(hostname: str):
         raise HTTPException(status_code=404, detail="CSV file not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+
+@router.get("/lightcurve/{star_id}/{tce_num}")
+async def get_lightcurve(star_id: str, tce_num: str):
+    """
+    Fetch lightcurve data from MAST API for the given star_id and tce number.
+    """
+    try:
+        url = f"https://exo.mast.stsci.edu/api/v0.1/dvdata/kepler/{star_id}/table?tce={tce_num}"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail=f"Lightcurve data not found for star_id: {star_id}")
+            elif response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code, 
+                    detail=f"Error fetching lightcurve data: {response.text}"
+                )
+            
+            data = response.json()
+            return {
+                "star_id": star_id,
+                "data": data
+            }
+            
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Network error: {str(e)}")
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Error parsing response: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
