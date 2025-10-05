@@ -32,7 +32,7 @@ def merge_selected_csvs(csv_files: list[str]) -> pd.DataFrame:
     Merge selected CSV files from UPLOAD_DIR and return as a pandas DataFrame.
     
     Args:
-        csv_files (list[str]): List of CSV filenames to merge.
+        csv_files (list[str]): List of  CSV filenames to merge.
     
     Returns:
         pd.DataFrame: The merged DataFrame.

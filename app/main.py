@@ -18,6 +18,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://nasa-space-apps-challenge-2025-frontend1.onrender.com"
+
         # add your deployed frontend origins here
     ],
     allow_credentials=True,
