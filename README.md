@@ -1,3 +1,4 @@
+## OuterHomes: A web application for seamless machine learning model training and light curve visualization on NASA Kepler data
 # Deployment
 
 Our server is now live and ready to be used at: https://nasa-space-apps-challenge-2025-frontend1.onrender.com
@@ -6,11 +7,13 @@ Our server is now live and ready to be used at: https://nasa-space-apps-challeng
 
 View a demo of our website at: https://www.youtube.com/watch?v=P9z29ItXTbM
 
-# Light Curve ML & Visualization — Quick Start
-
-Short instructions to get the project running locally. This README is intentionally brief and non-technical.
+# Frontend Repo
 
 The Web Interface relating to this project is available at: https://github.com/lammhuyy/NASA-Space-Apps-Challenge-2025-frontend
+
+# OuterHomes - QuickStart: Guideline
+
+Short instructions to get the project running locally. This README is intentionally brief and non-technical.
 
 
 1) Install
