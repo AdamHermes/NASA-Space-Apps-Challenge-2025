@@ -1,55 +1,53 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pathlib import Path
 import pandas as pd
 import httpx
-import json 
+import json
+import os 
 
 router = APIRouter(prefix='/visualization', tags=['visualization'])
 
 CSV_DIR = Path("app/storage/")
+VIDEO_DIR = Path("app/videos/")
 
 @router.get("/find_by_hostname/{hostname}")
 async def find_by_hostname(hostname: str):
     """
-    Find all rows with matching kepid based on the given hostname.
+    Find all distinct hostnames matching the search pattern.
     """
     try:
         csv_file_path = CSV_DIR / "cumulative_with_hostnames.csv"
         if not csv_file_path.exists():
             raise HTTPException(status_code=404, detail="CSV file not found")
         df = pd.read_csv(csv_file_path)
-        if 'Host Name' not in df.columns or 'kepid' not in df.columns:
-            raise HTTPException(status_code=400, detail="Required columns 'Host Name' or 'kepid' not found in CSV")
+        if 'Host Name' not in df.columns:
+            raise HTTPException(status_code=400, detail="Required column 'Host Name' not found in CSV")
+        
+        # Find all rows matching the hostname pattern
         matching_rows = df[df['Host Name'].str.contains(hostname, case=False, na=False)]
         if matching_rows.empty:
-            raise HTTPException(status_code=404, detail=f"No rows found with hostname containing '{hostname}'")
-        kepid = matching_rows.iloc[0]['kepid']
-        all_matching_kepid_rows = df[df['kepid'] == kepid]
-        result = all_matching_kepid_rows.to_dict('records')
+            raise HTTPException(status_code=404, detail=f"No hostnames found containing '{hostname}'")
         
-        # Clean the data to handle non-JSON compliant values (NaN, inf, -inf)
-        cleaned_result = []
-        for row in result:
-            cleaned_row = {}
-            for key, value in row.items():
-                if pd.isna(value):
-                    cleaned_row[key] = None
-                elif isinstance(value, float):
-                    if value == float('inf'):
-                        cleaned_row[key] = None
-                    elif value == float('-inf'):
-                        cleaned_row[key] = None
-                    else:
-                        cleaned_row[key] = value
-                else:
-                    cleaned_row[key] = value
-            cleaned_result.append(cleaned_row)
+        # Get unique hostnames and their planet counts
+        hostname_groups = matching_rows.groupby('Host Name').agg({
+            'kepid': 'first',  # Get the kepid for navigation
+            'Host Name': 'count'  # Count planets per hostname
+        }).rename(columns={'Host Name': 'planet_count'}).reset_index()
+        
+        # Convert to list of dictionaries
+        result = []
+        for _, row in hostname_groups.iterrows():
+            result.append({
+                'hostname': row['Host Name'],
+                'kepid': int(row['kepid']),
+                'planet_count': int(row['planet_count'])
+            })
         
         return {
-            "hostname": hostname,
-            "kepid": int(kepid),
-            "total_rows": len(cleaned_result),
-            "data": cleaned_result
+            "search_term": hostname,
+            "total_hostnames": len(result),
+            "hostnames": result
         }
         
     except FileNotFoundError:
@@ -183,3 +181,61 @@ async def get_lightcurve(star_id: str, tce_num: str):
         raise HTTPException(status_code=500, detail=f"Error parsing response: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+@router.get("/videos")
+async def get_videos():
+    """
+    Get list of available video files.
+    """
+    try:
+        if not VIDEO_DIR.exists():
+            VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+            return {
+                "total_videos": 0,
+                "videos": []
+            }
+        
+        video_files = []
+        for file_path in VIDEO_DIR.glob("*.mp4"):
+            video_files.append({
+                "filename": file_path.name,
+                "title": file_path.stem.replace("_", " ").title(),
+                "size": file_path.stat().st_size
+            })
+        
+        return {
+            "total_videos": len(video_files),
+            "videos": sorted(video_files, key=lambda x: x["title"])
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting videos: {str(e)}")
+
+
+@router.get("/videos/{filename}")
+async def get_video(filename: str):
+    """
+    Serve a video file by filename.
+    """
+    try:
+        if not VIDEO_DIR.exists():
+            raise HTTPException(status_code=404, detail="Video directory not found")
+        
+        video_path = VIDEO_DIR / filename
+        
+        if not video_path.exists():
+            raise HTTPException(status_code=404, detail=f"Video file '{filename}' not found")
+        
+        if not video_path.suffix.lower() == '.mp4':
+            raise HTTPException(status_code=400, detail="Only MP4 files are supported")
+        
+        return FileResponse(
+            path=str(video_path),
+            media_type='video/mp4',
+            filename=filename
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error serving video: {str(e)}")
+
