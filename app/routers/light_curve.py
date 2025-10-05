@@ -8,7 +8,13 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 from typing import List, Tuple, Dict, Any, Optional
 from tqdm import tqdm
-from app.routers.visualization import find_by_hostname
+from app.routers.visualization import find_by_kepid
+import zipfile
+from fastapi.responses import StreamingResponse
+import io
+
+
+
 
 router = APIRouter(prefix='/light_curve', tags=['light_curve'])
 
@@ -18,6 +24,7 @@ CUMULATIVE_PATH = Path("app/storage/cumulative_new.csv")
 
 TCE_MP4_DIR = Path("app/storage/animation")
 TCE_MP4_DIR.mkdir(parents=True, exist_ok=True)
+
 
 
 BASE_URL = "https://exo.mast.stsci.edu/api/v0.1/dvdata"
@@ -41,31 +48,103 @@ async def get_video_light_curve(kepler_id: str):
     # -----------------------------
     existing_videos = await check_video_exists(kepler_id)
     if all(v["exists"] for v in existing_videos):
-        return {
-            "kepler_id": kepler_id,
-            "status": "already_exists",
-            "message": f"All videos already exist for Kepler {kepler_id}.",
-            "number_videos": len(existing_videos),
-            "videos": existing_videos
+        mp4_paths = [v["video_path"] for v in existing_videos if v["exists"]]
+        if not mp4_paths:
+            return {"status": "error", "message": "No videos available for zipping."}
+
+        zip_buffer = zip_files_in_memory(mp4_paths, f"{kepler_id}_videos.zip")
+
+        # -----------------------------
+        # Step 3: Stream ZIP to client
+        # -----------------------------
+        headers = {
+            "Content-Disposition": f'attachment; filename="{kepler_id}_videos.zip"'
         }
+
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers=headers
+        )
+
     
     # -----------------------------
     # Step 2: Ensure TCE JSONs exist
     # -----------------------------
     json_status = await check_tce_json_exists(kepler_id)
     missing_jsons = [j for j in json_status if not j["exists"]]
+
     if missing_jsons:
-        # Auto-fetch missing TCE JSONs via your existing endpoint logic
+        print(f"⚙️ Missing {len(missing_jsons)} TCE JSONs — fetching now...")
         await curl_reformat_tces(kepler_id)
+        # Recheck JSONs after fetching
+        json_status = await check_tce_json_exists(kepler_id)
+
+    # Map JSON info by kepler_name for easy lookup
+    json_map = {Path(j["json_path"]).stem.split("_", 1)[1]: j for j in json_status}
 
     
+    # -----------------------------
+    # Step 3: Generate missing videos
+    # -----------------------------
+    generated_videos = []
+    for v in existing_videos:
+        if v["exists"]:
+            generated_videos.append(v)
+            continue  # Skip existing ones
 
-    # Step 2: (to be implemented) Handle missing videos:
-    # - Fetch TCE JSONs if missing
-    # - Generate missing animations using animate_cycle_reveal
-    # - Return full list with generated paths
-    ...
+        kepler_name = v["kepler_name"]
+        safe_name = kepler_name.replace(" ", "_").replace("-", "_")
 
+        json_path = TCE_DIR / f"{kepler_id}_{safe_name}.json"
+        video_path = TCE_MP4_DIR / f"{kepler_id}_{safe_name}.mp4"
+
+        if not json_path.exists():
+            print(f"⚠️ JSON missing for {kepler_name}, skipping video generation.")
+            v["exists"] = False
+            v["video_path"] = str(video_path)
+            generated_videos.append(v)
+            continue
+
+        print(f"🎬 Generating video for {kepler_name}...")
+        try:
+            _, out_written = animate_cycle_reveal(
+                json_path=str(json_path),
+                out_path=str(video_path),
+                seconds_per_cycle=5.0,
+                fps=20,
+                bitrate=2500,
+                show=False,
+                title=f"Light Curve — {kepler_name}",
+            )
+            v["exists"] = out_written is not None
+            v["video_path"] = str(video_path)
+            generated_videos.append(v)
+        except Exception as e:
+            print(f"❌ Failed to generate video for {kepler_name}: {e}")
+            v["exists"] = False
+            v["video_path"] = str(video_path)
+            generated_videos.append(v)
+
+    # -----------------------------
+    # Step 4: Return response
+    # -----------------------------
+    all_done = all(gv["exists"] for gv in generated_videos)
+    status = "completed" if all_done else "partial"
+    message = (
+        f"All videos successfully generated for Kepler {kepler_id}."
+        if all_done
+        else f"Some videos failed or missing for Kepler {kepler_id}."
+    )
+
+    return {
+        "kepler_id": kepler_id,
+        "status": status,
+        "message": message,
+        "number_videos": len(generated_videos),
+        "videos": generated_videos
+    }
+   
 async def check_tce_json_exists(kepler_id: str) -> List[Dict[str, Any]]:
     """
     Check whether TCE JSON files already exist for a given Kepler system.
@@ -75,7 +154,7 @@ async def check_tce_json_exists(kepler_id: str) -> List[Dict[str, Any]]:
     - Each entry: {"kepler_name": str, "json_path": str, "exists": bool}
     """
     results = []
-    res = find_by_hostname(kepler_id)
+    res = await find_by_kepid(int(kepler_id))
 
     if not res or "data" not in res:
         raise HTTPException(status_code=404, detail=f"No entries found for Kepler ID {kepler_id}")
@@ -105,7 +184,7 @@ async def check_video_exists(kepler_id: str) -> List[Dict[str, Any]]:
     """
 
     results = []
-    res = find_by_hostname(kepler_id)
+    res = await find_by_kepid(int(kepler_id))
 
     if not res or "data" not in res:
         raise HTTPException(status_code=404, detail=f"No entries found for Kepler ID {kepler_id}")
@@ -187,7 +266,7 @@ async def curl_reformat_tces(kepler_id: str):
             df = df[selected].dropna(subset=["LC_DETREND"])
 
             # Pick friendly name if exists
-            processed = process_tce_lightcurve(df, max_cycles=10)
+            processed = process_tce_lightcurve(df, max_cycles=5)
             index_tce = (tce_id.split("_")[1])
             planet_name = mappings[index_tce]
             
@@ -215,44 +294,63 @@ async def curl_reformat_tces(kepler_id: str):
 
     return combined_result
 
-def process_tce_lightcurve(df: pd.DataFrame, max_cycles: int = 10):
+def process_tce_lightcurve(df: pd.DataFrame, max_cycles: int = 5):
     """
     Process a single TCE light curve dataframe:
-    - Drop leading rows until PHASE < 0
-    - Keep only `max_cycles` (default=10) full cycles of phase
-    - Reformat into grouped cycles (list of lists of dicts)
+    - Detect phase cycle boundaries
+    - Keep only up to `max_cycles`
+    - If fewer cycles are available, automatically augment them by repeating
+      the last available cycles to reach the desired count (for animation consistency)
 
-    Returns: dict with {"cycles": [[{PHASE, LC_DETREND, MODEL_INIT}, ...], ...]}
+    Returns
+    -------
+    dict with {"cycles": [[{PHASE, LC_DETREND, MODEL_INIT}, ...], ...]}
     """
 
     if df.empty or "PHASE" not in df.columns:
         return {"cycles": []}
 
-    # Ensure sorted by phase order
+    # Sort by index to keep temporal order
     df = df.sort_index().reset_index(drop=True)
-
     x = df["PHASE"].to_numpy()
 
-    # Step 1: Drop leading rows until we first encounter a negative phase
-    start_idx = np.argmax(x < 0)   # first index where PHASE < 0
-    df = df.iloc[start_idx:].reset_index(drop=True)
+    # Step 1: Drop leading rows until first negative PHASE (beginning of first full orbit)
+    if np.any(x < 0):
+        start_idx = np.argmax(x < 0)
+        df = df.iloc[start_idx:].reset_index(drop=True)
 
-    # Step 2: Detect cycle boundaries (phase resets when it decreases)
+    # Step 2: Detect cycle boundaries (PHASE decreases -> new orbit)
     break_indices = [0]
     for i in range(1, len(df)):
-        if df["PHASE"].iloc[i] < df["PHASE"].iloc[i-1]:
+        if df["PHASE"].iloc[i] < df["PHASE"].iloc[i - 1]:
             break_indices.append(i)
     break_indices.append(len(df))
 
-    # Step 3: Group into cycles (keep only up to max_cycles)
-    cycles = []
-    for j in range(min(max_cycles, len(break_indices)-1)):
-        start = break_indices[j]
-        end = break_indices[j+1]
+    # Step 3: Slice cycles
+    raw_cycles = []
+    for j in range(len(break_indices) - 1):
+        start, end = break_indices[j], break_indices[j + 1]
         segment = df.iloc[start:end]
-        cycles.append(segment.to_dict(orient="records"))
+        if not segment.empty:
+            raw_cycles.append(segment.to_dict(orient="records"))
+
+    # Step 4: Auto-augment if not enough cycles
+    if len(raw_cycles) == 0:
+        return {"cycles": []}
+
+    cycles = raw_cycles.copy()
+    while len(cycles) < max_cycles:
+        # Duplicate last few cycles to pad up to max_cycles
+        needed = max_cycles - len(cycles)
+        extension = raw_cycles[-min(len(raw_cycles), needed):]
+        # Deep-copy to avoid modifying originals
+        cycles.extend([json.loads(json.dumps(c)) for c in extension])
+
+    # Step 5: Trim down if overshoot
+    cycles = cycles[:max_cycles]
 
     return {"cycles": cycles}
+
 
 
 def animate_cycle_reveal(
@@ -469,3 +567,19 @@ def animate_cycle_reveal(
 
     return ani, out_written
 
+
+def zip_files_in_memory(file_paths: list[str], zip_name: str = "videos.zip") -> io.BytesIO:
+    """
+    Create an in-memory ZIP archive containing the given file paths.
+    Returns a BytesIO object ready to be streamed or saved.
+    """
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for path in file_paths:
+            file_path = Path(path)
+            if file_path.exists():
+                zipf.write(file_path, arcname=file_path.name)
+            else:
+                print(f"⚠️ File not found: {file_path}")
+    zip_buffer.seek(0)
+    return zip_buffer
