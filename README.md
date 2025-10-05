@@ -1,6 +1,6 @@
 # Deployment
 
-Our server is now live at: https://nasa-space-apps-challenge-2025-frontend1.onrender.com
+Our server is now live and ready to be used at: https://nasa-space-apps-challenge-2025-frontend1.onrender.com
 
 # Video Demo
 
