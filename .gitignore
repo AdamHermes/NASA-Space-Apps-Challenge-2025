@@ -7,3 +7,4 @@ __pycache__/
 data/
 /app/storage/tces
 /app/storage/animation
+.DS_Store
