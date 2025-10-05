@@ -18,3 +18,4 @@ dependencies:
       - python-multipart
       - ffmpeg-python
       - typing-extensions
+      - lightgbm
