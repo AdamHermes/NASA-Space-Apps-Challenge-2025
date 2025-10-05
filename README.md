@@ -1,8 +1,17 @@
+# Deployment
+
+Our server is now live at: https://nasa-space-apps-challenge-2025-frontend1.onrender.com
+
+# Video Demo
+
+View a demo of our website at: https://www.youtube.com/watch?v=P9z29ItXTbM
+
 # Light Curve ML & Visualization — Quick Start
 
 Short instructions to get the project running locally. This README is intentionally brief and non-technical.
 
 The Web Interface relating to this project is available at: https://github.com/lammhuyy/NASA-Space-Apps-Challenge-2025-frontend
+
 
 1) Install
 
