@@ -90,6 +90,7 @@ def process_inference_data(final_data):
 
         # Optionally drop the original column
         df.drop(columns=["koi_tce_delivname"], inplace=True)
+    df = df.dropna().reset_index(drop=True)
 
     print(df.columns)
     return df
