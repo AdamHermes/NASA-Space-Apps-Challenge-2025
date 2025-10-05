@@ -1,0 +1,20 @@
+name: exoplanet-backend
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - fastapi
+  - uvicorn
+  - numpy
+  - pandas
+  - scikit-learn
+  - httpx
+  - requests
+  - matplotlib
+  - tqdm
+  - pip
+  - pip:
+      - python-multipart
+      - ffmpeg-python
+      - typing-extensions
