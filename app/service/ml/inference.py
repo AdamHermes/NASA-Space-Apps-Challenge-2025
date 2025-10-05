@@ -202,4 +202,3 @@ def inference_list_csvs(model_type, model_name, list_csv_names):
 def inference_new_data(model_type, model_name, new_csvs_data):
     pass
 
-

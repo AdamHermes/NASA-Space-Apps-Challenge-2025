@@ -6,6 +6,8 @@ from sklearn.ensemble import (
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+import lightgbm as lgb
+
 import joblib
 from typing import Tuple
 import pandas as pd
@@ -68,7 +70,13 @@ def train_extra_trees(X_train, y_train, X_test, y_test, n_estimators=100, max_de
         joblib.dump(et, save_path)
     return et, metrics
 
-
+def train_lightgbm(X_train, y_train, X_test, y_test,  n_estimators=100, learning_rate=0.1, save_path=None):
+    lgbm = lgb.LGBMClassifier(n_estimators=n_estimators, learning_rate=learning_rate, random_state=42)
+    lgbm.fit(X_train, y_train)
+    metrics = evaluate_model(lgbm, X_test, y_test)
+    if save_path:
+        joblib.dump(lgbm, save_path)
+    return lgbm, metrics
 # your_model_module.py
 
 
@@ -117,6 +125,12 @@ def train_model(
             X_train, y_train, X_test, y_test,
             n_estimators=n_estimators or 100,
             max_depth=max_depth,
+        )
+    elif model_name == "lightgbm":
+        model,metrics = train_lightgbm(
+            X_train, y_train, X_test, y_test,
+            n_estimators=n_estimators or 100,
+            learning_rate=learning_rate or 0.1,
         )
     else:
         raise ValueError(f"Unknown model_name '{model_name}'")
