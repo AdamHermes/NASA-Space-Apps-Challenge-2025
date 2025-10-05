@@ -8,3 +8,4 @@ data/
 /app/storage/tces
 /app/storage/animation
 .DS_Store
+/app/videos

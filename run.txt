@@ -1,2 +1,2 @@
 export PATH="/Users/hainguyen/Package:$PATH"
-uvicorn app.main:app --reload --port 5000
+uvicorn app.main:app --reload --port 8000

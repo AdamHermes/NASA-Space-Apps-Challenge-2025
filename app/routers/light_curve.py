@@ -22,9 +22,8 @@ TCE_DIR = Path("app/storage/tces")
 TCE_DIR.mkdir(parents=True, exist_ok=True)
 CUMULATIVE_PATH = Path("app/storage/cumulative_new.csv")
 
-TCE_MP4_DIR = Path("app/storage/animation")
+TCE_MP4_DIR = Path("app/videos")
 TCE_MP4_DIR.mkdir(parents=True, exist_ok=True)
-
 
 
 BASE_URL = "https://exo.mast.stsci.edu/api/v0.1/dvdata"
@@ -48,24 +47,10 @@ async def get_video_light_curve(kepler_id: str):
     # -----------------------------
     existing_videos = await check_video_exists(kepler_id)
     if all(v["exists"] for v in existing_videos):
-        mp4_paths = [v["video_path"] for v in existing_videos if v["exists"]]
-        if not mp4_paths:
-            return {"status": "error", "message": "No videos available for zipping."}
-
-        zip_buffer = zip_files_in_memory(mp4_paths, f"{kepler_id}_videos.zip")
-
-        # -----------------------------
-        # Step 3: Stream ZIP to client
-        # -----------------------------
-        headers = {
-            "Content-Disposition": f'attachment; filename="{kepler_id}_videos.zip"'
+        return {
+            "message": "Generate videos succesfully",
+            "success": True
         }
-
-        return StreamingResponse(
-            zip_buffer,
-            media_type="application/zip",
-            headers=headers
-        )
 
     
     # -----------------------------
@@ -136,6 +121,11 @@ async def get_video_light_curve(kepler_id: str):
         if all_done
         else f"Some videos failed or missing for Kepler {kepler_id}."
     )
+
+    return {
+            "message": "Generate videos succesfully",
+            "success": True
+        }
 
     return {
         "kepler_id": kepler_id,
