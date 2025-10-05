@@ -87,7 +87,7 @@ def train_model(
     Dispatch function to call the appropriate model training function based on model_name.
     
     Returns:
-        model: trained model object
+        model: trained model objectc
         metrics: dict containing accuracy, confusion matrix, classification report
     """
     model_name = model_name.lower()  # normalize string
