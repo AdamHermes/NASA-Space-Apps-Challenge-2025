@@ -5,3 +5,7 @@ scikit-learn
 python-multipart
 httpx
 requests
+matplotlib
+tqdm
+ffmpeg-python
+typing-extensions

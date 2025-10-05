@@ -72,6 +72,8 @@ def process_koi(csv_name):
         if "koi_tce_delivname" in df.columns:
             df["koi_tce_delivname"].fillna(df["koi_tce_delivname"].mode()[0], inplace=True)
             df = pd.get_dummies(df, columns=["koi_tce_delivname"], drop_first=True)
+        # print(df["koi_tce_delivname_q1_q17_dr24_tce"][:10])
+        # print(df["koi_tce_delivname_q1_q17_dr25_tce"][:10])
 
         # ======================
         # Step 5: Split into X and y
